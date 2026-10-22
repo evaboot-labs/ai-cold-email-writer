@@ -158,15 +158,24 @@ def push(queue_path, campaign, send):
         if r not in ready:
             why = r.get("Email check") if "do not send" in r.get("Email check", "") else f"email status {r['Email status'] or 'missing'}"
             print(f"skip {r['Name']}: {why}")
+    added = 0
     for r in ready:
         first, _, last = r["Name"].partition(" ")
         lead = {"campaign": campaign, "email": r["Email"], "first_name": first, "last_name": last,
                 "company_name": r["Company"], "personalization": r["Body"],
                 "custom_variables": {"ai_subject": r["Subject"]}, "skip_if_in_campaign": True}
-        if send:
-            instantly("POST", "/leads", lead)
-        print(("added" if send else "dry run") + f": {r['Name']} <{r['Email']}>")
-    print(f"{len(ready)} of {len(rows)} approved rows {'added to' if send else 'ready for'} campaign {campaign}")
+        if not send:
+            print(f"dry run: {r['Name']} <{r['Email']}>")
+            continue
+        # Instantly answers 200 with the existing lead when the person is already in a campaign.
+        other = instantly("POST", "/leads", lead).get("campaign")
+        if other and other != campaign:
+            print(f"skip {r['Name']}: already in campaign {other}")
+            continue
+        added += 1
+        print(f"added: {r['Name']} <{r['Email']}>")
+    print(f"{added if send else len(ready)} of {len(rows)} approved rows "
+          f"{'added to' if send else 'ready for'} campaign {campaign}")
 
 
 def main():
