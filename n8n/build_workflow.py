@@ -107,7 +107,7 @@ return $input.all().filter(r => String(r.json['Send (yes/no)']).trim().toLowerCa
 WRITE_SYSTEM = """You write the first cold email to each lead in the JSON you are given, for the offer below. Use only the facts in the JSON and the offer: never invent a customer, a number or a result.
 
 For each lead return {id, hook, subject, body} or {id, skip: true, reason}.
-Rules: skip leads with no email, an email_status other than safe or riskier, or an email_check that says "do not send". Subject: 60 characters at most, lower case, about them. Body: 40 to 110 words; "Hi <first name>," then one short paragraph on them, one on the offer, one line for a low-effort ask; paragraphs separated by a blank line. One real hook, named in "hook": a new role, company growth (always "in a year"), the size of the sales team, or one concrete line of their own headline or summary. No link, no template phrases ("hope this finds you", "quick question"), and vary the first line across the emails.
+Rules: skip leads with no email, an email_status other than safe, or an email_check that says "do not send". Subject: 60 characters at most, lower case, about them. Body: 40 to 110 words; "Hi <first name>," then one short paragraph on them, one on the offer, one line for a low-effort ask; paragraphs separated by a blank line. One real hook, named in "hook": a new role, company growth (always "in a year"), the size of the sales team, or one concrete line of their own headline or summary. No link, no template phrases ("hope this finds you", "quick question"), and vary the first line across the emails.
 
 Offer:
 """

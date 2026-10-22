@@ -21,12 +21,12 @@ You do the Sales Navigator and Evaboot work through the Evaboot MCP server (`htt
 
 1. If the Evaboot MCP tools are not in this session, walk the user through `docs/connect-your-agent.md`, then ask them to restart the agent from this folder: `EVABOOT_API_KEY` is read only when the agent starts.
 2. Otherwise call `verify_token` and `get_daily_export_quota`. If `has_valid_salesnav` is false, ask the user to sign in to Evaboot in Chrome, open any Sales Navigator search with the Evaboot extension, and click Export with Evaboot, then call the quota again.
-3. Run `mkdir -p data queue`. Both folders are git-ignored: they hold real people's data.
+3. Run `mkdir -p data queue`, and `cp .env.example .env` if `.env` is missing (the user fills in the keys). Both folders and `.env` are git-ignored: they hold real people's data and secrets.
 4. Read `OFFER.md`. If it says `Status: EXAMPLE`, ask the user what they sell, to whom, what proof they may use and what they ask for. Rewrite the file and set `Status: yours`.
 
 ## Step 1: the leads
 
-If the user already has an Evaboot export, use it. Otherwise:
+Ask where the leads come from: an Evaboot export they already have (use it, no credits), the latest run of a recurring export (`get_recurring_export`, then `get_export`), or a new search. Say the cost before any new export: 1 credit per lead. For a new search:
 
 1. Call `build_sn_search_from_prompt` with **people only** (titles, seniority, geography, and a signal such as "changed jobs recently"), with `max_results` = how many emails they want this time. Never put an industry or a company size in this request: that starts a company-first crawl.
 2. Poll `get_search_build`, then add industry and size to the URL yourself if needed (the same `INDUSTRY` and `COMPANY_HEADCOUNT` filters the account's other searches use).
@@ -43,7 +43,7 @@ python3 emails.py facts data/export.json > queue/facts.json
 
 Read `OFFER.md` again, then write `queue/emails.json`: one entry per lead in `facts.json`, either `{"id", "hook", "subject", "body"}` or `{"id", "skip": true, "reason"}`.
 
-- Skip leads with no email, an `email_status` other than `safe` or `riskier`, or an `email_check` that says "do not send".
+- Skip leads with no email, an `email_status` other than `safe` (only safe emails are loaded into Instantly), or an `email_check` that says "do not send". A link site is a link-in-bio or link-shortener domain such as linktr.ee: a company page that lists one as its website gives emails that cannot be right.
 - The hook is the fact the email rests on, in a few words. Good hooks: a new role (`new_in_role`), company growth (`company_growth_1y_pct`, always "in a year"), the size of the sales team (`sales_team`), one concrete line of the lead's own `headline` or `summary`.
 - Body: "Hi <first name>," then one short paragraph on them, one on the offer, and a one-line ask. Use `\n\n` between paragraphs.
 
@@ -59,12 +59,12 @@ Fix every `FAIL` and run it again.
 python3 emails.py sheet queue/facts.json queue/emails.json > queue/queue.csv
 ```
 
-Put it where the user reviews: a Google Sheet when the session has a Google Drive tool, otherwise the CSV path. Point out the rows with an `Email check` note. Ask them to edit the emails they want and write `yes` in `Send (yes/no)`. Wait.
+Put it where the user reviews: a Google Sheet when the session has a Google Drive tool, otherwise give them the CSV path to open in any spreadsheet app (Excel, Numbers, Google Sheets import). Point out the rows with an `Email check` note. Ask them to edit the emails they want and write `yes` in `Send (yes/no)`. Wait.
 
 ## Step 4: load the approved emails into Instantly
 
 1. In Instantly, the user needs a campaign whose first step has the subject `{{ai_subject}}` and the body `{{personalization}}` (see `docs/instantly.md`). Ask for its id (in the campaign URL).
-2. Dry run: `python3 emails.py push queue/queue.csv --campaign <id>`. Show which rows go and which are skipped (only `safe` emails, never a link-site domain).
+2. Dry run: `python3 emails.py push queue/queue.csv --campaign <id>`. Show which rows go and which are skipped (only `safe` emails, never a link site).
 3. On a yes: `python3 emails.py push queue/queue.csv --campaign <id> --send`.
 4. Ask the user to open the campaign, preview two or three leads, and launch it themselves.
 

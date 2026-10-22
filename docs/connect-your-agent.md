@@ -8,21 +8,20 @@ The prompt in the README does all of this for you. These are the same steps, for
    git clone https://github.com/evaboot-labs/ai-cold-email-writer.git
    cd ai-cold-email-writer
    ```
-3. **Connect the Evaboot MCP server.** Copy your API key from
-   [dash.evaboot.com/dash/api/](https://dash.evaboot.com/dash/api/), then:
+3. **Add your keys.** Copy your Evaboot API key from [dash.evaboot.com/dash/api/](https://dash.evaboot.com/dash/api/) and your Instantly API key (Settings > Integrations > API keys, API v2), then:
    ```bash
-   cp .env.example .env          # paste your keys after EVABOOT_API_KEY= and INSTANTLY_API_KEY=
-   export EVABOOT_API_KEY=...    # same key, for your agent
+   cp .env.example .env          # paste the keys after EVABOOT_API_KEY= and INSTANTLY_API_KEY=
+   export EVABOOT_API_KEY=...    # same Evaboot key, for your agent
    ```
+4. **Connect the Evaboot MCP server:**
    - **Claude Code** reads `.mcp.json` in this folder and uses `EVABOOT_API_KEY` from your environment. Export the key before you start Claude Code: a session that is already open does not see it.
    - **Codex:** `codex mcp add evaboot --url https://mcp.evaboot.com/mcp --bearer-token-env-var EVABOOT_API_KEY`
    - **Cursor:** add `https://mcp.evaboot.com/mcp` with the header `Authorization: Bearer <your key>`.
-   - **Claude or ChatGPT on the web:** add `https://mcp.evaboot.com/mcp` as a custo4. **Set up the Instantly campaign** with [docs/instantly.md](instantly.md).
-5. **Describe your offer** in [`OFFER.md`](../OFFER.md), or let your agent ask you.
-6. **Check** (Python 3.9+, no packages to install): `python3 emails.py -h` lists the commands.
+   - **Claude or ChatGPT on the web:** add `https://mcp.evaboot.com/mcp` as a custom connector and sign in. The web apps cannot run `emails.py`, so use Claude Code, Codex or Cursor for this repo, or the n8n version.
+5. **Set up the Instantly campaign** with [instantly.md](instantly.md).
+6. **Describe your offer** in [`OFFER.md`](../OFFER.md), or let your agent ask you.
+7. **Check** (Python 3.9+, no packages to install): `python3 emails.py -h` lists the commands.
 
 Then ask your agent: **"Write cold emails for my next 20 leads."**
-
-s: <your companies>."**
 
 Back to the [README](../README.md).
