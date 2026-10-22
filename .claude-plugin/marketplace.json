@@ -1,0 +1,14 @@
+{
+  "name": "evaboot-labs-ai-cold-email-writer",
+  "owner": { "name": "Evaboot", "url": "https://evaboot.com" },
+  "metadata": {
+    "description": "An AI Agent that writes one personalised cold email per Sales Navigator lead from real data, and loads the ones you approve into Instantly."
+  },
+  "plugins": [
+    {
+      "name": "ai-cold-email-writer",
+      "source": "./",
+      "description": "Export leads with Evaboot, write one first email per lead from real facts, check them, and load the approved ones into Instantly."
+    }
+  ]
+}

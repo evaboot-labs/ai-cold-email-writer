@@ -1,0 +1,681 @@
+{
+  "name": "AI cold email writer (Evaboot MCP + Claude + Instantly)",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Write AI cold emails",
+        "formDescription": "Paste a Sales Navigator people search. Evaboot exports the leads (1 credit per lead), Claude writes one email per lead into your sheet, and you approve before anything reaches Instantly.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Sales Navigator search URL",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Leads to export",
+              "fieldType": "number",
+              "requiredField": true,
+              "placeholder": "20"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "3a671744-584b-4c87-ae87-1239b82afb8d",
+      "name": "Search to email",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5aa8d297-e32c-4659-a5eb-039b773ff2d5",
+              "name": "sheet_url",
+              "type": "string",
+              "value": "PASTE_YOUR_GOOGLE_SHEET_URL_WITH_GID"
+            },
+            {
+              "id": "13fb4696-8e3f-4af4-87ec-ca34a8ab879c",
+              "name": "instantly_campaign_id",
+              "type": "string",
+              "value": "PASTE_YOUR_CAMPAIGN_ID"
+            },
+            {
+              "id": "0c7a6493-1119-4dd5-817e-562c28de08e1",
+              "name": "offer",
+              "type": "string",
+              "value": "Evaboot exports a LinkedIn Sales Navigator search to a clean spreadsheet with verified professional emails, for sales leaders who build prospect lists. Ask: a low-effort question such as 'Worth a look?'"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "c83ee2bf-d9b3-4224-8a05-025680e9d6ad",
+      "name": "Your settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp.evaboot.com/mcp",
+        "authentication": "bearerAuth",
+        "tool": {
+          "__rl": true,
+          "mode": "list",
+          "value": "export_sn_search_or_list",
+          "cachedResultName": "export_sn_search_or_list"
+        },
+        "inputMode": "json",
+        "jsonInput": "={{ JSON.stringify({ linkedin_url: $('Search to email').first().json['Sales Navigator search URL'].trim(), max_results: Number($('Search to email').first().json['Leads to export']) || 20, search_name: 'Cold emails ' + $now.toFormat('yyyy-MM-dd') }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "84c054ab-7f1e-4d57-82c2-ea63b307c00b",
+      "name": "Export with Evaboot",
+      "type": "@n8n/n8n-nodes-langchain.mcpClient",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "",
+          "name": "Evaboot MCP (Bearer)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "id": "03cfb801-3147-4303-8557-a09f49c954ae",
+      "name": "Wait 30 s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp.evaboot.com/mcp",
+        "authentication": "bearerAuth",
+        "tool": {
+          "__rl": true,
+          "mode": "list",
+          "value": "get_export",
+          "cachedResultName": "get_export"
+        },
+        "inputMode": "json",
+        "jsonInput": "={{ JSON.stringify({ extraction_id: $('Export with Evaboot').first().json.structuredContent.result.extraction_id }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "812079fd-fa21-4e3f-9a22-65676964d7c6",
+      "name": "Check the export",
+      "type": "@n8n/n8n-nodes-langchain.mcpClient",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "",
+          "name": "Evaboot MCP (Bearer)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d57c7f1d-d0ba-4a6e-8dbf-26ca7be8999c",
+              "leftValue": "={{ $json.structuredContent.result.status }}",
+              "rightValue": "EXECUTED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6b0a5793-10a4-4cd8-8633-cc03d4c9e2a9",
+      "name": "Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Same as emails.py facts: real fields only, plus the email-domain check.\nconst LINK_DOMAINS = ['linktr.ee', 'bit.ly', 'beacons.ai', 'lnk.bio', 'linkin.bio', 'carrd.co', 'about.me'];\nconst num = v => { const n = parseFloat(String(v ?? '').replace(/,/g, '')); return isNaN(n) ? null : n; };\nconst words = s => String(s || '').split(/\\s+/).join(' ').trim();\nfunction domainNote(email, company) {\n  if (!email) return '';\n  const d = email.split('@').pop().toLowerCase(); const c = String(company || '').toLowerCase();\n  if (LINK_DOMAINS.includes(d)) return `email on ${d}, a link site: do not send`;\n  if (c && !(d === c || d.endsWith('.' + c) || c.endsWith('.' + d))) return `email domain ${d} differs from the company's ${c}: check it`;\n  return '';\n}\nconst prospects = $json.structuredContent.result.prospects || [];\nif (!prospects.length) throw new Error('The export returned no leads. Check the search in Sales Navigator.');\nconst leads = prospects.map(p => {\n  const months = (num(p['Years in Position']) || 0) * 12 + (num(p['Months in Position']) || 0);\n  return {\n    id: p['Linkedin URL Unique ID'] || p['Linkedin URL Public'] || p['Full Name'],\n    first_name: p['First Name'] || '', last_name: p['Last Name'] || '', name: p['Full Name'] || '',\n    email: p['Email'] || '', email_status: p['Email Status'] || 'not found',\n    email_check: domainNote(p['Email'] || '', p['Company Domain']),\n    title: String(p['Current Job'] || '').trim(), company: p['Company Name'] || '',\n    months_in_role: months,\n    new_in_role: ['true', 'yes', '1'].includes(String(p['Has New Position']).toLowerCase()) || months < 6,\n    headline: words(p['Profile Headline']), summary: words(p['Profile Summary']).slice(0, 700),\n    company_description: words(p['Company Description']).slice(0, 400),\n    company_growth_1y_pct: num(p['Company Employee Growth 1 Year (%)']), sales_team: num(p['Sales Team Size']),\n  };\n});\nreturn [{ json: { leads } }];\n"
+      },
+      "id": "567e61e4-b44b-4dc2-a823-3a1f658f6cf4",
+      "name": "Lead facts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify($json.leads) }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You write the first cold email to each lead in the JSON you are given, for the offer below. Use only the facts in the JSON and the offer: never invent a customer, a number or a result.\n\nFor each lead return {id, hook, subject, body} or {id, skip: true, reason}.\nRules: skip leads with no email, an email_status other than safe or riskier, or an email_check that says \"do not send\". Subject: 60 characters at most, lower case, about them. Body: 40 to 110 words; \"Hi <first name>,\" then one short paragraph on them, one on the offer, one line for a low-effort ask; paragraphs separated by a blank line. One real hook, named in \"hook\": a new role, company growth (always \"in a year\"), the size of the sales team, or one concrete line of their own headline or summary. No link, no template phrases (\"hope this finds you\", \"quick question\"), and vary the first line across the emails.\n\nOffer:\n{{ $('Your settings').first().json.offer }}",
+          "maxIterations": 3
+        }
+      },
+      "id": "c3001c41-4948-43b8-8c80-26dc3f73315a",
+      "name": "Write the emails",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        -100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5-5",
+          "cachedResultName": "claude-sonnet-5-5"
+        },
+        "options": {
+          "maxTokensToSample": 12000
+        }
+      },
+      "id": "616ca9f0-7d8f-4014-82f2-f8602bc50b5a",
+      "name": "Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1520,
+        120
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "",
+          "name": "Anthropic"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"required\": [\n    \"emails\"\n  ],\n  \"properties\": {\n    \"emails\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [\n          \"id\"\n        ],\n        \"properties\": {\n          \"id\": {\n            \"type\": \"string\"\n          },\n          \"hook\": {\n            \"type\": \"string\"\n          },\n          \"subject\": {\n            \"type\": \"string\"\n          },\n          \"body\": {\n            \"type\": \"string\"\n          },\n          \"skip\": {\n            \"type\": \"boolean\"\n          },\n          \"reason\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  }\n}"
+      },
+      "id": "6de353ba-7ecd-485f-a6de-9a2476c71015",
+      "name": "Emails",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1680,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Same checks as emails.py check: subject length, body length, no link, a hook, the first name.\nconst leads = $('Lead facts').first().json.leads;\nconst out = Object.fromEntries($json.output.emails.map(e => [e.id, e]));\nreturn leads.map(l => {\n  const e = out[l.id] || { skip: true, reason: 'no email returned' };\n  let subject = e.skip ? '' : (e.subject || ''), body = e.skip ? '' : (e.body || '');\n  let hook = e.skip ? `SKIP: ${e.reason || 'no reason given'}` : (e.hook || '');\n  const n = body.split(/\\s+/).filter(Boolean).length;\n  const first = String(l.first_name).split(/[\\s-]/)[0].toLowerCase();\n  const bad = !e.skip && (!e.hook || !subject || subject.length > 60 || n < 40 || n > 110\n    || /https?:\\/\\/|www\\./.test(body) || !body.toLowerCase().startsWith('hi ' + first));\n  if (bad) { hook = 'SKIP: the email failed the checks'; subject = ''; body = ''; }\n  return { json: {\n    'Name': l.name, 'Title': l.title, 'Company': l.company, 'Email': l.email, 'Email status': l.email_status,\n    'Email check': l.email_check, 'Hook': hook, 'Subject': subject, 'Body': body, 'Send (yes/no)': '',\n  } };\n});\n"
+      },
+      "id": "efaafa1b-8138-4d94-8e6c-7e831be739e9",
+      "name": "Check each email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $('Your settings').first().json.sheet_url }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $('Your settings').first().json.sheet_url }}"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "78733a27-9417-4b13-9078-d37a46a0e7ba",
+      "name": "Add to the approval sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2100,
+        -100
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Load the rows marked yes into Instantly?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Yes, load them"
+                  },
+                  {
+                    "option": "No, stop here"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {
+          "formTitle": "Read and approve the emails",
+          "formDescription": "Open your sheet, edit any email you want, and write yes in Send for the ones to load. Only safe emails are loaded. Nothing is sent: you launch the campaign in Instantly."
+        }
+      },
+      "id": "0327d171-e42c-4aa3-9091-e148db33caf3",
+      "name": "Approve",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        2320,
+        -100
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "76981db0-ccb1-49a9-a3e2-1b9b4a7e3afb",
+              "leftValue": "={{ $json['Load the rows marked yes into Instantly?'] }}",
+              "rightValue": "Yes, load them",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "84dae0fc-90e6-40d6-acf3-6dc96eb9c3a4",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2540,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $('Your settings').first().json.sheet_url }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "url",
+          "value": "={{ $('Your settings').first().json.sheet_url }}"
+        },
+        "options": {}
+      },
+      "id": "3ea3356a-af23-4c67-bc0e-214b95e8b518",
+      "name": "Read the sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2760,
+        -200
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Rows you marked yes, with a safe email that is not on a link site.\nreturn $input.all().filter(r => String(r.json['Send (yes/no)']).trim().toLowerCase() === 'yes'\n  && r.json['Body'] && r.json['Email status'] === 'safe' && !String(r.json['Email check']).includes('do not send'));\n"
+      },
+      "id": "50424347-0879-4428-8522-0779e1f5baaa",
+      "name": "Approved rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2980,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.instantly.ai/api/v2/leads",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ campaign: $('Your settings').first().json.instantly_campaign_id, email: $json.Email, first_name: $json.Name.split(' ')[0], last_name: $json.Name.split(' ').slice(1).join(' '), company_name: $json.Company, personalization: $json.Body, custom_variables: { ai_subject: $json.Subject }, skip_if_in_campaign: true }) }}",
+        "options": {}
+      },
+      "id": "19acce0c-5c3e-42f9-add7-6727a6310a6b",
+      "name": "Add to Instantly",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3200,
+        -200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Instantly API key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Emails loaded",
+        "completionMessage": "Preview a few leads in your Instantly campaign, then launch it when you are ready.",
+        "options": {}
+      },
+      "id": "69f141d2-62af-473c-87e6-3ef83c2e22b0",
+      "name": "Loaded",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        3420,
+        -200
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Nothing loaded",
+        "completionMessage": "The emails stay in your sheet.",
+        "options": {}
+      },
+      "id": "acb31eb5-34c8-4f6d-b9e7-52a90a935d60",
+      "name": "Stopped",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.3,
+      "position": [
+        2760,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Search to email": {
+      "main": [
+        [
+          {
+            "node": "Your settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Your settings": {
+      "main": [
+        [
+          {
+            "node": "Export with Evaboot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Export with Evaboot": {
+      "main": [
+        [
+          {
+            "node": "Wait 30 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30 s": {
+      "main": [
+        [
+          {
+            "node": "Check the export",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check the export": {
+      "main": [
+        [
+          {
+            "node": "Done?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead facts": {
+      "main": [
+        [
+          {
+            "node": "Write the emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write the emails": {
+      "main": [
+        [
+          {
+            "node": "Check each email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check each email": {
+      "main": [
+        [
+          {
+            "node": "Add to the approval sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to the approval sheet": {
+      "main": [
+        [
+          {
+            "node": "Approve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read the sheet": {
+      "main": [
+        [
+          {
+            "node": "Approved rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved rows": {
+      "main": [
+        [
+          {
+            "node": "Add to Instantly",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add to Instantly": {
+      "main": [
+        [
+          {
+            "node": "Loaded",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Done?": {
+      "main": [
+        [
+          {
+            "node": "Lead facts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 30 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Read the sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stopped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Write the emails",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Emails": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Write the emails",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

@@ -1,0 +1,13 @@
+{
+  "name": "ai-cold-email-writer",
+  "version": "1.0.0",
+  "description": "Export leads with Evaboot, write one first email per lead from real facts, check them, and load the approved ones into Instantly.",
+  "author": { "name": "Evaboot", "url": "https://evaboot.com" },
+  "homepage": "https://evaboot.com/blog/how-to-automate-cold-emails-with-ai",
+  "repository": "https://github.com/evaboot-labs/ai-cold-email-writer",
+  "license": "MIT",
+  "privacyPolicyUrl": "https://evaboot.com/privacy-policy",
+  "keywords": ["cold-email", "ai-agent", "instantly", "sales-navigator", "evaboot", "mcp"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}
