@@ -1,0 +1,7 @@
+{"layout": "flow", "eyebrow": "evaboot-labs · ai-cold-email-writer", "headline": "One real email per lead.",
+ "subline": "Sales Navigator leads in. Checked, approved emails in Instantly out.",
+ "nodes": [{"label": "01 · Leads", "title": "Sales Navigator", "caption": "Your search, exported"},
+           {"label": "02 · Data", "title": "Evaboot", "caption": "Verified emails, facts"},
+           {"label": "03 · Write", "title": "AI Agent", "caption": "Checked, under 110 words"},
+           {"label": "04 · Result", "title": "Instantly", "caption": "You approve and launch"}],
+ "spec": "server <em>mcp.evaboot.com/mcp</em> · nothing is sent without you"}
